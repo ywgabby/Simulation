@@ -2,7 +2,7 @@
 title: "Simulation"
 author: "Yaduo Wang"
 date: "2023-11-12"
-output: html_document
+output: github_document
 ---
 
 ```{r}
