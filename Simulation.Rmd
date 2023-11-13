@@ -1,0 +1,122 @@
+---
+title: "Simulation"
+author: "Yaduo Wang"
+date: "2023-11-12"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+set.seed(1)
+```
+
+## Let's similate something
+
+I have a function take sample of size n from the population with mu and sigma.
+```{r}
+sim_mean_sd = function(n, mu = 2, sigma = 3) {
+  
+  sim_data = tibble(
+    x = rnorm(n, mean = mu, sd = sigma),
+  )
+  
+  sim_data |> 
+    summarize(
+      mu_hat = mean(x),
+      sigma_hat = sd(x)
+    )
+}
+sim_mean_sd(30)
+```
+
+## Let's simulate a lot
+Let's start with a for loop.
+Repeat 100 times of the function and generate a dataframe with 100 sample means and sample sd with sample 30 under the normal distribution with mean = 2 and sigma = 3. 
+```{r}
+#define an output.
+output = vector("list", length = 100)
+
+#
+for (i in 1:100) {
+  output[[i]] = sim_mean_sd(30)
+  
+}
+bind_rows(output)
+```
+
+Let's use a loop function.
+generate the same results. Rerun the function for 100 times and get 100 sample means and standard deviations. 
+```{r}
+sim_results = 
+  rerun(100, sim_mean_sd(30)) |> 
+  bind_rows()
+
+```
+
+Find the average and standard deviations for the 100 sample mean.
+```{r}
+sim_results |> 
+    ggplot(aes(x = mu_hat)) + 
+  geom_density()
+
+sim_results |> 
+    ggplot(aes(x = sigma_hat)) + 
+  geom_density()
+
+sim_results |> 
+  summarize(
+    average_sample_mean = mean(mu_hat),
+    sd_samp_mean = sd(mu_hat)
+  )
+```
+
+## Let's try other sample sizes. 
+```{r}
+n_list = list(
+  "n = 30" = 30,
+  "n = 60" = 60,
+  "n = 120" = 120,
+  "n = 240" = 240
+)
+
+output = vector("list", 4)
+
+# run every sample size for 100 times
+
+for (i in 1:4){
+  output[[i]] = rerun(100, sim_mean_sd(n = n_list[[i]])) |> 
+    bind_rows()
+}
+
+## CONFUSE!!!
+sim_result = 
+  tibble(
+  n = c(30, 60, 120, 240)
+) |> 
+  mutate(
+    output_lists = map(.x = n, ~ rerun(100, sim_mean_sd(.x))),
+    estimate_df = map(output_lists, bind_rows)
+  ) |> 
+  select(-output_lists) |> 
+  unnest(estimate_df)
+```
+
+```{r}
+sim_result |> 
+  mutate(
+    sample_size = str_c("n = ", n),
+    sample_size = fct_inorder(sample_size)) |> 
+  ggplot(aes(x = sample_size, y = mu_hat, fill = sample_size)) + 
+  geom_violin()
+```
+
+```{r}
+sim_result |> 
+  group_by(n) |> 
+  summarize(
+    avg_sample_mean = mean(mu_hat),
+    sd_samp_mean = sd(mu_hat)
+  )
+```
+
